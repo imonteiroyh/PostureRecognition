@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 
 video.mp4
+video_output.mp4
