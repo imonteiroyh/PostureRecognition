@@ -1,8 +1,6 @@
 import cv2
 import mediapipe as mp
-import time
-
-
+import numpy as np
 
 class PoseDetector():
 
@@ -30,18 +28,30 @@ class PoseDetector():
                 self.mpDraw.draw_landmarks(frame, self.results.pose_landmarks, self.mpPose.POSE_CONNECTIONS,
                                         connection_drawing_spec=self.mpDraw.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=2))
 
-
         return frame
 
 
-    def get_position(self, frame):
-        landmarks = []
+    def get_position(self, frame, draw=True):
+        self.landmarks = []
 
         if self.results.pose_landmarks:
             for id, landmark in enumerate(self.results.pose_landmarks.landmark):
-                height, width, channel = frame.shape
-                cx, cy = int(landmark.x * width), int(landmark.y * height)
+                height, width, _ = frame.shape
+                cx, cy, z, visibility = int(landmark.x * width), int(landmark.y * height), landmark.z, landmark.visibility
+                self.landmarks.append({'id': id, 'cx': cx, 'cy': cy, 'z': z, 'visibility': visibility})
+                if draw:
+                    cv2.circle(frame, (cx, cy), 5, (255, 0, 0), cv2.FILLED)
 
-                landmarks.append([id, cx, cy])
+        return self.landmarks
 
-        return landmarks
+
+    def get_segmentation_mask(self, frame):
+        segmentation_mask = self.results.segmentation_mask
+        segmentation_mask = np.repeat(segmentation_mask[:, :, np.newaxis], 3, axis=2) * 255
+        segmentation_mask = cv2.cvtColor(segmentation_mask, cv2.COLOR_BGR2GRAY)
+        segmentation_mask = segmentation_mask.astype(np.uint8)
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (25, 25))
+        dilated_mask = cv2.dilate(segmentation_mask, kernel, iterations=1)
+
+        return dilated_mask
