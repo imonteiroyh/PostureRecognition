@@ -1,57 +1,226 @@
-import cv2
-import mediapipe as mp
 import numpy as np
+import cv2
+from configobj import ConfigObj
+from utils import pad_right_down_corner
+from layers import convolution, relu, pooling
+from keras.layers import Input, Lambda, Concatenate
+from keras.models import Model
+from scipy.ndimage import gaussian_filter
 
-class PoseDetector():
+class PoseEstimator():
 
-    def __init__(self, static_image_mode=False, model_complexity=1, smooth_landmarks=True, enable_segmentation=True, smooth_segmentation=True, min_detection_confidence=0.5, min_tracking_confidence=0.5):
-        self.static_image_mode = static_image_mode
-        self.model_complexity = model_complexity
-        self.smooth_landmarks = smooth_landmarks
-        self.enable_segmentation = enable_segmentation
-        self.smooth_segmentation = smooth_segmentation
-        self.min_detection_confidence = min_detection_confidence
-        self.min_tracking_confidence = min_tracking_confidence
-
-        self.mpDraw = mp.solutions.drawing_utils
-        self.mpPose = mp.solutions.pose
-        self.pose = self.mpPose.Pose(self.static_image_mode, self.model_complexity, self.smooth_landmarks,
-                                     self.enable_segmentation, self.smooth_segmentation,
-                                     self.min_detection_confidence, self.min_tracking_confidence)
-
-    def get_pose(self, frame, draw=True):
-        frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        self.results = self.pose.process(frameRGB)
-
-        if self.results.pose_landmarks:
-            if draw:
-                self.mpDraw.draw_landmarks(frame, self.results.pose_landmarks, self.mpPose.POSE_CONNECTIONS,
-                                        connection_drawing_spec=self.mpDraw.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=2))
-
-        return frame
+    def __init__(self):
+        self.__colors = [[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0], [85, 255, 0],
+                       [0, 255, 0], [0, 255, 85], [0, 255, 170], [0, 255, 255], [0, 170, 255], [0, 85, 255],
+                       [0, 0, 255], [85, 0, 255], [170, 0, 255], [255, 0, 255], [255, 0, 170], [255, 0, 85]]
 
 
-    def get_position(self, frame, draw=True):
-        self.landmarks = []
+        self.__paf_channels = 38
+        self.__heatmap_channels = 19
 
-        if self.results.pose_landmarks:
-            for id, landmark in enumerate(self.results.pose_landmarks.landmark):
-                height, width, _ = frame.shape
-                cx, cy, z, visibility = int(landmark.x * width), int(landmark.y * height), landmark.z, landmark.visibility
-                self.landmarks.append({'id': id, 'cx': cx, 'cy': cy, 'z': z, 'visibility': visibility})
-                if draw:
-                    cv2.circle(frame, (cx, cy), 5, (255, 0, 0), cv2.FILLED)
+        self.__model = self.__get_model()
+        self.__load_model_weights('model.h5')
 
-        return self.landmarks
+        self.__parameters = {}
+        self.__model_parameters = {}
+        self.__read_configurations('config.ini')
 
 
-    def get_segmentation_mask(self, frame):
-        segmentation_mask = self.results.segmentation_mask
-        segmentation_mask = np.repeat(segmentation_mask[:, :, np.newaxis], 3, axis=2) * 255
-        segmentation_mask = cv2.cvtColor(segmentation_mask, cv2.COLOR_BGR2GRAY)
-        segmentation_mask = segmentation_mask.astype(np.uint8)
+    def __load_model_weights(self, weights_file):
+        try:
+            self.__model.load_weights(weights_file)
+            print('Modelo carregado com sucesso')
+        except Exception as e:
+            print('Erro ao carregar o modelo: ', e)
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (25, 25))
-        dilated_mask = cv2.dilate(segmentation_mask, kernel, iterations=1)
 
-        return dilated_mask
+    def __read_configurations(self, configurations_file):
+        configurations = ConfigObj(configurations_file)
+
+        model_configurations = configurations['model_parameters']
+        self.__model_parameters['boxsize'] = int(model_configurations['boxsize'])
+        self.__model_parameters['stride'] = int(model_configurations['stride'])
+        self.__model_parameters['pad_value'] = int(model_configurations['pad_value'])
+
+        meta_configurations = configurations['parameters']
+        self.__parameters['scale_search'] = list(map(float, meta_configurations['scale_search']))
+        self.__parameters['threshold_1'] = float(meta_configurations['threshold_1'])
+
+
+    def __vgg_block(self, input_tensor, weight_decay):
+
+        tensor = input_tensor
+
+        # Block 1
+        tensor = convolution(tensor, 64, 3, 'block_1_convolution_1', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 64, 3, 'block_1_convolution_2', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = pooling(tensor, 2, 2, 'block_1_pooling_1')
+
+        # Block 2
+        tensor = convolution(tensor, 128, 3, 'block_2_convolution_1', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 3, 'block_2_convolution_2', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = pooling(tensor, 2, 2, 'block_2_pooling_1')
+
+        # Block 3
+        tensor = convolution(tensor, 256, 3, 'block_3_convolution_1', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 256, 3, 'block_3_convolution_2', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 256, 3, 'block_3_convolution_3', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 256, 3, 'block_3_convolution_4', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = pooling(tensor, 2, 2, 'block_3_pooling_1')
+
+        # Block 4
+        tensor = convolution(tensor, 512, 3, 'block_4_convolution_1', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 512, 3, 'block_4_convolution_2', (weight_decay, 0))
+        tensor = relu(tensor)
+
+        # Additional Non-VGG Layers
+        tensor = convolution(tensor, 256, 3, 'block_4_convolution_3', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 3, 'block_4_convolution_4', (weight_decay, 0))
+        tensor = relu(tensor)
+
+        return tensor
+
+
+    def __stage_1_block(self, input_tensor, number_of_keypoints, branch, weight_decay):
+
+        tensor = input_tensor
+
+        tensor = convolution(tensor, 128, 3, f'{branch}_stage_1_convolution_1', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 3, f'{branch}_stage_1_convolution_2', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 3, f'{branch}_stage_1_convolution_3', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 512, 1, f'{branch}_stage_1_convolution_4', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, number_of_keypoints, 1, f'{branch}_stage_1_convolution_5', (weight_decay, 0))
+
+        return tensor
+
+
+    def __stage_n_block(self, input_tensor, number_of_keypoints, stage, branch, weight_decay):
+
+        tensor = input_tensor
+
+        tensor = convolution(tensor, 128, 7, f'{branch}_stage_{stage}_convolution_1', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 7, f'{branch}_stage_{stage}_convolution_2', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 7, f'{branch}_stage_{stage}_convolution_3', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 7, f'{branch}_stage_{stage}_convolution_4', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 7, f'{branch}_stage_{stage}_convolution_5', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, 128, 1, f'{branch}_stage_{stage}_convolution_6', (weight_decay, 0))
+        tensor = relu(tensor)
+        tensor = convolution(tensor, number_of_keypoints, 1, f'{branch}_stage_{stage}_convolution_7', (weight_decay, 0))
+
+        return tensor
+
+
+    def __get_model(self):
+        stages = 6
+
+        image_input_shape = (None, None, 3)
+
+        image_input = Input(shape=image_input_shape)
+
+        image_normalized = Lambda(lambda x: x / 255 - 0.5)(image_input)
+
+        stage_0_output = self.__vgg_block(image_normalized, None)
+
+        stage_1_paf_output = self.__stage_1_block(stage_0_output, self.__paf_channels, 'paf', None)
+        stage_1_heatmap_output = self.__stage_1_block(stage_0_output, self.__heatmap_channels, 'heatmap', None)
+
+        concatenated_features = Concatenate()([stage_1_paf_output, stage_1_heatmap_output, stage_0_output])
+
+        stage_n_paf_output = None
+        stage_n_heatmap_output = None
+        for stage in range(2, stages + 1):
+            stage_n_paf_output = self.__stage_n_block(concatenated_features, self.__paf_channels, stage, 'paf', None)
+            stage_n_heatmap_output = self.__stage_n_block(concatenated_features, self.__heatmap_channels, stage, 'heatmap', None)
+
+            if stage < stages:
+                concatenated_features = Concatenate()([stage_n_paf_output, stage_n_heatmap_output, stage_0_output])
+
+        model = Model(inputs=[image_input], outputs=[stage_n_paf_output, stage_n_heatmap_output])
+
+        return model
+
+
+    def process_capture(self, input_image):
+
+        # Imagem no formato BGR
+        original_image = input_image.copy()
+
+        multiplier = [x * self.__model_parameters['boxsize'] / original_image.shape[0] for x in self.__parameters['scale_search']]
+        multiplier = [multiplier.pop(0)]
+
+        paf_average = np.zeros((original_image.shape[0], original_image.shape[1], self.__paf_channels))
+        heatmap_average = np.zeros((original_image.shape[0], original_image.shape[1], self.__heatmap_channels))
+
+        for scale in multiplier:
+            image = cv2.resize(original_image, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+            image_padded, pad = pad_right_down_corner(image, self.__model_parameters['stride'], self.__model_parameters['pad_value'])
+
+            image = np.transpose(np.float32(image_padded[:, :, :, np.newaxis]), (3, 0, 1, 2))
+            output = self.__model.predict(image)
+
+            paf = np.squeeze(output[0])
+            paf = cv2.resize(paf, (0, 0), fx=self.__model_parameters['stride'], fy=self.__model_parameters['stride'], interpolation=cv2.INTER_CUBIC)
+            paf = paf[: image_padded.shape[0] - pad[0] - pad[2], : image_padded.shape[1] - pad[1] - pad[3], :]
+            paf = cv2.resize(paf, (original_image.shape[1], original_image.shape[0]), interpolation=cv2.INTER_CUBIC)
+            paf_average += paf / len(multiplier)
+
+            heatmap = np.squeeze(output[1])
+            heatmap = cv2.resize(heatmap, (0, 0), fx=self.__model_parameters['stride'], fy=self.__model_parameters['stride'], interpolation=cv2.INTER_CUBIC)
+            heatmap = heatmap[: image_padded.shape[0] - pad[0] - pad[2], : image_padded.shape[1] - pad[1] - pad[3], :]
+            heatmap = cv2.resize(heatmap, (original_image.shape[1], original_image.shape[0]), interpolation=cv2.INTER_CUBIC)
+            heatmap_average += heatmap / len(multiplier)
+
+        mark_counter = 0
+        all_marks = []
+        for body_part in range(self.__heatmap_channels - 1):
+            original_heatmap = heatmap_average[:, :, body_part].copy()
+            heatmap = gaussian_filter(original_heatmap, sigma=3)
+
+            heatmap_left = np.zeros(heatmap.shape)
+            heatmap_left[1 :, :] = heatmap[: -1, :]
+            heatmap_right = np.zeros(heatmap.shape)
+            heatmap_right[: -1, :] = heatmap[1 :, :]
+            heatmap_up = np.zeros(heatmap.shape)
+            heatmap_up[:, 1 :] = heatmap[:, : -1]
+            heatmap_down = np.zeros(heatmap.shape)
+            heatmap_down[:, : -1] = heatmap[:, 1 :]
+
+            marks_binary = np.logical_and.reduce(
+                (heatmap >= heatmap_left, heatmap >= heatmap_right, heatmap >= heatmap_up, heatmap >= heatmap_down, heatmap > self.__parameters['threshold_1'])
+            )
+
+            marks = list(zip(np.nonzero(marks_binary)[1], np.nonzero(marks_binary)[0]))
+            marks_with_score = [mark + (original_heatmap[mark[1], mark[0]], ) for mark in marks]
+
+            mark_id = range(mark_counter, mark_counter + len(marks))
+            marks_with_score_and_id = [marks_with_score[i] + (mark_id[i], ) for i in range(len(marks))]
+
+            all_marks.append(marks_with_score_and_id)
+            mark_counter += 1
+
+        frame = input_image.copy()
+
+        for i in range(self.__heatmap_channels - 1):
+            for j in range(len(all_marks[i])):
+                cv2.circle(frame, all_marks[i][j][0 : 2], 4, self.__colors[i], thickness=-1)
+
+        return frame, all_marks
