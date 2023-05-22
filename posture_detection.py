@@ -93,5 +93,4 @@ if __name__ == '__main__':
         else:
             print('Não foi possível abrir a câmera')
 
-
 cv2.destroyAllWindows()

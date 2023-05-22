@@ -220,9 +220,10 @@ class PoseEstimator():
             heatmap = cv2.resize(heatmap, (original_image.shape[1], original_image.shape[0]), interpolation=cv2.INTER_CUBIC)
             heatmap_average += heatmap / len(multiplier)
 
+        number_of_detected_marks = 0
+        
         mark_counter = 0
         body_marks = []
-        number_of_detected_marks = 0
         for body_part in range(self.__heatmap_channels - 1):
             original_heatmap = heatmap_average[:, :, body_part].copy()
             heatmap = gaussian_filter(original_heatmap, sigma=3)
