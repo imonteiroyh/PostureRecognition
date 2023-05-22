@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # Imagem
     if args.type == 'image':
 
-        frame = cv2.imread('image2.jpg')
+        frame = cv2.imread('image.jpg')
 
         start = time.time()
         frame, body_marks, hand_marks = estimator.process_capture(frame)

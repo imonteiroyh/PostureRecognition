@@ -8,10 +8,6 @@ from keras.models import Model
 from scipy.ndimage import gaussian_filter
 import mediapipe as mp
 
-NECK = (1, 16, 17)
-TRUNK = (1, 8, 11)
-SHOULDER = (1, 2, 5)
-
 class PoseEstimator():
 
     def __init__(self):
@@ -19,7 +15,6 @@ class PoseEstimator():
                          [0, 255, 170], [0, 255, 85], [0, 255, 0], [85, 255, 0], [170, 255, 0],
                          [255, 255, 0], [255, 170, 0], [255, 85, 0], [255, 0, 0], [170, 0, 255],
                          [255, 0, 170], [255, 0, 255], [255, 0, 85], [85, 255, 255], [170, 255, 255]]
-
 
         self.__paf_channels = 38
         self.__heatmap_channels = 19
@@ -60,21 +55,21 @@ class PoseEstimator():
 
         tensor = input_tensor
 
-        # Block 1
+        # Bloco 1
         tensor = convolution(tensor, 64, 3, 'block_1_convolution_1', (weight_decay, 0))
         tensor = relu(tensor)
         tensor = convolution(tensor, 64, 3, 'block_1_convolution_2', (weight_decay, 0))
         tensor = relu(tensor)
         tensor = pooling(tensor, 2, 2, 'block_1_pooling_1')
 
-        # Block 2
+        # Bloco 2
         tensor = convolution(tensor, 128, 3, 'block_2_convolution_1', (weight_decay, 0))
         tensor = relu(tensor)
         tensor = convolution(tensor, 128, 3, 'block_2_convolution_2', (weight_decay, 0))
         tensor = relu(tensor)
         tensor = pooling(tensor, 2, 2, 'block_2_pooling_1')
 
-        # Block 3
+        # Bloco 3
         tensor = convolution(tensor, 256, 3, 'block_3_convolution_1', (weight_decay, 0))
         tensor = relu(tensor)
         tensor = convolution(tensor, 256, 3, 'block_3_convolution_2', (weight_decay, 0))
@@ -85,13 +80,13 @@ class PoseEstimator():
         tensor = relu(tensor)
         tensor = pooling(tensor, 2, 2, 'block_3_pooling_1')
 
-        # Block 4
+        # Bloco 4
         tensor = convolution(tensor, 512, 3, 'block_4_convolution_1', (weight_decay, 0))
         tensor = relu(tensor)
         tensor = convolution(tensor, 512, 3, 'block_4_convolution_2', (weight_decay, 0))
         tensor = relu(tensor)
 
-        # Additional Non-VGG Layers
+        # Camadas não-VGG adicionais
         tensor = convolution(tensor, 256, 3, 'block_4_convolution_3', (weight_decay, 0))
         tensor = relu(tensor)
         tensor = convolution(tensor, 128, 3, 'block_4_convolution_4', (weight_decay, 0))
@@ -227,6 +222,7 @@ class PoseEstimator():
 
         mark_counter = 0
         body_marks = []
+        number_of_detected_marks = 0
         for body_part in range(self.__heatmap_channels - 1):
             original_heatmap = heatmap_average[:, :, body_part].copy()
             heatmap = gaussian_filter(original_heatmap, sigma=3)
@@ -250,22 +246,21 @@ class PoseEstimator():
             mark_id = range(mark_counter, mark_counter + len(marks))
             marks_with_score_and_id = [marks_with_score[i] + (mark_id[i], ) for i in range(len(marks))]
 
+            number_of_detected_marks += len(marks_with_score_and_id)
             body_marks.append(marks_with_score_and_id)
             mark_counter += 1
-
+    
         hand_marks = self.__get_hand_marks(input_image)
 
         frame = input_image.copy()
 
         for i in range(self.__heatmap_channels - 1):
-            if i not in SHOULDER:
-                continue
             for j in range(len(body_marks[i])):
                 cv2.circle(frame, body_marks[i][j][0 : 2], 4, self.__colors[i], thickness=-1)
 
         for i in range(2):
             for j in range(3):
-                if hand_marks[i][j][3] > 0.5:
+                if hand_marks[i][j][2] > 0.7:
                     try:
                         cv2.circle(frame, hand_marks[i][j][0 : 2], 4, self.__colors[self.__heatmap_channels - 1 + i], thickness=-1)
                     except:
