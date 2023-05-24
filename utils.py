@@ -28,22 +28,3 @@ def pad_right_down_corner(image, stride, pad_value):
     image_padded = np.concatenate((pad_left, image_padded), axis=1)
 
     return image_padded, pad
-
-
-def get_angle(a, b):
-        try:
-            a_coordinate_x, a_coordinate_y = a
-            b_coordinate_x, b_coordinate_y = b
-
-            if (a_coordinate_x == b_coordinate_x):
-                return 90
-
-            print(b_coordinate_y - a_coordinate_y)
-            print(b_coordinate_x - a_coordinate_x)
-
-            angle = math.degrees(math.atan2(abs(b_coordinate_y - a_coordinate_y), abs(b_coordinate_x - a_coordinate_x)))
-
-            return angle
-
-        except:
-            return None
