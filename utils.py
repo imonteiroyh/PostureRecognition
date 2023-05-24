@@ -38,9 +38,6 @@ def get_angle(a, b):
             if (a_coordinate_x == b_coordinate_x):
                 return 90
 
-            print(b_coordinate_y - a_coordinate_y)
-            print(b_coordinate_x - a_coordinate_x)
-
             angle = math.degrees(math.atan2(abs(b_coordinate_y - a_coordinate_y), abs(b_coordinate_x - a_coordinate_x)))
 
             return angle
