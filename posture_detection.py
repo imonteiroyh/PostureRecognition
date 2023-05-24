@@ -23,7 +23,6 @@ if __name__ == '__main__':
 
         start = time.time()
         frame, body_marks, hand_marks = estimator.process_capture(frame)
-        print(body_marks)
         print(f'Tempo: {time.time() - start}')
 
         cv2.imshow('Frame', frame)
