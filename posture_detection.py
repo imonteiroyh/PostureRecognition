@@ -13,8 +13,6 @@ args = parser.parse_args()
 if args.type not in ['image', 'video', 'webcam']:
     sys.exit()
 
-array = []
-
 if __name__ == '__main__':
     print('Iniciando detecção dos pontos-chave')
 
@@ -25,17 +23,19 @@ if __name__ == '__main__':
 
         for file in os.listdir('image'):
 
+            # if file != 'normal6.jpeg':
+            #     continue
+
             frame = cv2.imread('image/' + file)
 
             start = time.time()
-            frame, body_marks, hand_marks = estimator.process_capture(frame)
-            classifier = PostureClassifier(body_marks, hand_marks)
+            frame, body_marks = estimator.process_capture(frame)
+            classifier = PostureClassifier(body_marks)
             print(f'Tempo: {time.time() - start}')
 
             cv2.imwrite('image_processed/' + file, frame)
-            array.append((body_marks, hand_marks))
-            # cv2.imshow(file, frame)
-            # cv2.waitKey(0)
+            cv2.imshow(file, frame)
+            cv2.waitKey(0)
 
     # Video
     if args.type == 'video':
@@ -56,7 +56,7 @@ if __name__ == '__main__':
                 break
 
             start = time.time()
-            frame, body_marks, hand_marks = estimator.process_capture(frame)
+            frame, body_marks = estimator.process_capture(frame)
             print(f'Tempo: {time.time() - start}')
 
             cv2.imshow('Frame', frame)
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                     break
 
                 start = time.time()
-                frame, body_marks, hand_marks = estimator.process_capture(frame)
+                frame, body_marks = estimator.process_capture(frame)
                 print(f'Tempo: {time.time() - start}')
 
                 cv2.imshow('Frame', frame)

@@ -6,7 +6,6 @@ from layers import convolution, relu, pooling
 from keras.layers import Input, Lambda, Concatenate
 from keras.models import Model
 from scipy.ndimage import gaussian_filter
-import mediapipe as mp
 
 class PoseEstimator():
 
@@ -25,9 +24,6 @@ class PoseEstimator():
         self.__parameters = {}
         self.__model_parameters = {}
         self.__read_configurations('config.ini')
-
-        self.draw = mp.solutions.drawing_utils
-        self.pose = mp.solutions.pose.Pose()
 
 
     def __load_model_weights(self, weights_file):
@@ -163,33 +159,6 @@ class PoseEstimator():
         return model
 
 
-    def __get_hand_marks(self, input_image):
-
-        image = input_image.copy()
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        results = self.pose.process(image)
-
-        hand_marks = [[], []]
-        if results.pose_landmarks:
-
-            for id in range(17, 23):
-                landmark = results.pose_landmarks.landmark[id]
-
-                height, width, _ = image.shape
-
-                coordinate_x, coordinate_y, visibility = int(landmark.x * width), int(landmark.y * height), landmark.visibility
-
-                position = (coordinate_x, coordinate_y, visibility, id)
-
-                if id % 2 == 1:
-                    hand_marks[0].append(position)
-                else:
-                    hand_marks[1].append(position)
-
-        return hand_marks
-
-
     def process_capture(self, input_image):
 
         # Imagem no formato BGR
@@ -221,7 +190,7 @@ class PoseEstimator():
             heatmap_average += heatmap / len(multiplier)
 
         number_of_detected_marks = 0
-        
+
         mark_counter = 0
         body_marks = []
         for body_part in range(self.__heatmap_channels - 1):
@@ -250,8 +219,6 @@ class PoseEstimator():
             number_of_detected_marks += len(marks_with_score_and_id)
             body_marks.append(marks_with_score_and_id)
             mark_counter += 1
-    
-        hand_marks = self.__get_hand_marks(input_image)
 
         frame = input_image.copy()
 
@@ -259,11 +226,4 @@ class PoseEstimator():
             for j in range(len(body_marks[i])):
                 cv2.circle(frame, body_marks[i][j][0 : 2], 4, self.__colors[i], thickness=-1)
 
-        for i in range(2):
-            for j in range(3):
-                if hand_marks[i][j][2] > 0.7:
-                    try:
-                        cv2.circle(frame, hand_marks[i][j][0 : 2], 4, self.__colors[self.__heatmap_channels - 1 + i], thickness=-1)
-                    except:
-                        continue
-        return frame, body_marks, hand_marks
+        return frame, body_marks

@@ -20,17 +20,15 @@ LÓGICA A SER IMPLEMENTADA:
 
 class PostureClassifier():
 
-    def __init__(self, body_marks, hand_marks):
+    def __init__(self, body_marks):
         self.body_marks = body_marks
-        self.hand_marks = hand_marks
-        self.posture_condition = PostureCondition(self.body_marks, self.hand_marks)
+        self.posture_condition = PostureCondition(self.body_marks)
 
 
 class PostureCondition():
 
-    def __init__(self, body_marks, hand_marks):
+    def __init__(self, body_marks):
         self.body_marks = body_marks
-        self.hand_marks = hand_marks
 
         self.nose = self.body_marks[0]
         self.neck = self.body_marks[1]
@@ -55,7 +53,6 @@ class PostureCondition():
         self.get_neck_condition()
         self.get_upper_arm_condition()
         self.get_elbow_condition()
-        self.get_wrist_condition()
         self.get_thigh_condition()
         self.get_knee_condition()
 
