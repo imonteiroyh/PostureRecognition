@@ -1,8 +1,8 @@
 import numpy as np
 import cv2
 from configobj import ConfigObj
-from utils import pad_right_down_corner
-from layers import convolution, relu, pooling
+from posture_classification.utils import pad_right_down_corner
+from posture_classification.layers import convolution, relu, pooling
 from keras.layers import Input, Lambda, Concatenate
 from keras.models import Model
 from scipy.ndimage import gaussian_filter
@@ -18,12 +18,14 @@ class PoseEstimator():
         self.__paf_channels = 38
         self.__heatmap_channels = 19
 
+        self.__directory = 'posture_classification/'
+
         self.__model = self.__get_model()
-        self.__load_model_weights('model.h5')
+        self.__load_model_weights(self.__directory + 'model.h5')
 
         self.__parameters = {}
         self.__model_parameters = {}
-        self.__read_configurations('config.ini')
+        self.__read_configurations(self.__directory + 'config.ini')
 
 
     def __load_model_weights(self, weights_file):

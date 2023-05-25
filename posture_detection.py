@@ -3,8 +3,8 @@ import os
 import sys
 import time
 import argparse
-from pose_module import PoseEstimator
-from posture_module import PostureClassifier
+from posture_classification.pose_module import PoseEstimator
+from posture_classification.posture_module import PostureClassifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('type', help='Objetivo da detecção de pontos-chave')
@@ -23,9 +23,6 @@ if __name__ == '__main__':
 
         for file in os.listdir('image'):
 
-            # if file != 'normal6.jpeg':
-            #     continue
-
             frame = cv2.imread('image/' + file)
 
             start = time.time()
@@ -34,6 +31,7 @@ if __name__ == '__main__':
             print(f'Tempo: {time.time() - start}')
 
             cv2.imwrite('image_processed/' + file, frame)
+            
             cv2.imshow(file, frame)
             cv2.waitKey(0)
 

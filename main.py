@@ -5,7 +5,7 @@ import numpy as np
 import time
 from base64 import b64decode
 import paho.mqtt.client as mqtt
-from pose_module import PoseEstimator
+from posture_classification.pose_module import PoseEstimator
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -43,7 +43,7 @@ def start_client() -> mqtt.Client:
 
 def on_message(client, userdata, message):
     global estimator
-    
+
     print("Message received")
     timestamp = datetime.datetime.now()
 
