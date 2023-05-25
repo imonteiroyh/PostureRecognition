@@ -16,7 +16,17 @@ IMAGES_TOPIC = 'images'
 
 estimator = PoseEstimator()
 
+images_dir = './images'
+images_detected_dir = './images_detected'
+
+
 def main():
+    if not os.path.exists(images_dir):
+        os.mkdir(images_dir)
+
+    if not os.path.exists(images_detected_dir):
+        os.mkdir(images_detected_dir)
+
     client = start_client()
 
     client.on_message = on_message
@@ -32,25 +42,26 @@ def start_client() -> mqtt.Client:
 
 
 def on_message(client, userdata, message):
-    print("Message received")
     global estimator
+    
+    print("Message received")
+    timestamp = datetime.datetime.now()
+
     image_data = b64decode(message.payload)
     image_as_np = np.frombuffer(image_data, dtype=np.uint8)
 
     print('Iniciando detecção dos pontos-chave')
 
     frame = cv2.imdecode(image_as_np, flags=1)
+    image_name = f'{images_dir}/{timestamp}.jpeg'
+    cv2.imwrite(image_name, frame)
 
     start = time.time()
-    frame, body_marks = estimator.process_capture(frame)
+    frame_detected, body_marks = estimator.process_capture(frame)
     print(f'Tempo: {time.time() - start}')
 
-    images_dir = './images'
-    if not os.path.exists(images_dir):
-        os.mkdir(images_dir)
-
-    image_name = f'{images_dir}/{datetime.datetime.now()}.jpeg'
-    cv2.imwrite(image_name, frame)
+    image_detected_name = f'{images_detected_dir}/{timestamp}.jpeg'
+    cv2.imwrite(image_detected_name, frame_detected)
 
 if __name__ == '__main__':
     main()
