@@ -261,9 +261,9 @@ class PoseEstimator():
 
         for i in range(2):
             for j in range(3):
-                if hand_marks[i][j][2] > 0.7:
-                    try:
+                try:
+                    if hand_marks[i][j][2] > 0.7:
                         cv2.circle(frame, hand_marks[i][j][0 : 2], 4, self.__colors[self.__heatmap_channels - 1 + i], thickness=-1)
-                    except:
-                        continue
+                except:
+                    continue
         return frame, body_marks, hand_marks
