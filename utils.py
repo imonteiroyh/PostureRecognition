@@ -30,8 +30,9 @@ def pad_right_down_corner(image, stride, pad_value):
     return image_padded, pad
 
 
-def get_angle(a, b):
-        try:
+def get_angle(a, b, c=None):
+    try:
+        if not c:
             a_coordinate_x, a_coordinate_y = a
             b_coordinate_x, b_coordinate_y = b
 
@@ -41,6 +42,30 @@ def get_angle(a, b):
             angle = math.degrees(math.atan2(abs(b_coordinate_y - a_coordinate_y), abs(b_coordinate_x - a_coordinate_x)))
 
             return angle
+        else:
+            distance_a = get_distance(b, c)
+            distance_b = get_distance(c, a)
+            distance_c = get_distance(a, b)
 
-        except:
-            return None
+            angle = math.degrees(math.acos((distance_a ** 2 + distance_c ** 2 - distance_b ** 2) / (2 * distance_a * distance_c)))
+
+            return angle
+
+    except:
+        return None
+
+
+def get_distance(a, b, type=None):
+    try:
+        a_coordinate_x, a_coordinate_y = a
+        b_coordinate_x, b_coordinate_y = b
+
+        if not type:
+            distance = math.sqrt((b_coordinate_x - a_coordinate_x) ** 2 + (b_coordinate_y - a_coordinate_y) ** 2)
+        elif type == 'vertical':
+            distance = abs(b_coordinate_y - a_coordinate_y)
+
+        return distance
+
+    except:
+        return None

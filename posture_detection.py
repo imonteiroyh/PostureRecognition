@@ -1,8 +1,10 @@
 import cv2
+import os
 import sys
 import time
 import argparse
 from pose_module import PoseEstimator
+from posture_module import PostureClassifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('type', help='Objetivo da detecção de pontos-chave')
@@ -10,6 +12,8 @@ args = parser.parse_args()
 
 if args.type not in ['image', 'video', 'webcam']:
     sys.exit()
+
+array = []
 
 if __name__ == '__main__':
     print('Iniciando detecção dos pontos-chave')
@@ -19,15 +23,19 @@ if __name__ == '__main__':
     # Imagem
     if args.type == 'image':
 
-        frame = cv2.imread('image.jpg')
+        for file in os.listdir('image'):
 
-        start = time.time()
-        frame, body_marks, hand_marks = estimator.process_capture(frame)
-        print(body_marks)
-        print(f'Tempo: {time.time() - start}')
+            frame = cv2.imread('image/' + file)
 
-        cv2.imshow('Frame', frame)
-        cv2.waitKey(0)
+            start = time.time()
+            frame, body_marks, hand_marks = estimator.process_capture(frame)
+            classifier = PostureClassifier(body_marks, hand_marks)
+            print(f'Tempo: {time.time() - start}')
+
+            cv2.imwrite('image_processed/' + file, frame)
+            array.append((body_marks, hand_marks))
+            # cv2.imshow(file, frame)
+            # cv2.waitKey(0)
 
     # Video
     if args.type == 'video':
