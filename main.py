@@ -42,7 +42,7 @@ def on_message(client, userdata, message):
     frame = cv2.imdecode(image_as_np, flags=1)
 
     start = time.time()
-    frame, body_marks, hand_marks = estimator.process_capture(frame)
+    frame, body_marks = estimator.process_capture(frame)
     print(f'Tempo: {time.time() - start}')
 
     images_dir = './images'

@@ -22,7 +22,7 @@ if __name__ == '__main__':
         frame = cv2.imread('image.jpg')
 
         start = time.time()
-        frame, body_marks, hand_marks = estimator.process_capture(frame)
+        frame, body_marks = estimator.process_capture(frame)
         print(f'Tempo: {time.time() - start}')
 
         cv2.imshow('Frame', frame)
@@ -47,7 +47,7 @@ if __name__ == '__main__':
                 break
 
             start = time.time()
-            frame, body_marks, hand_marks = estimator.process_capture(frame)
+            frame, body_marks = estimator.process_capture(frame)
             print(f'Tempo: {time.time() - start}')
 
             cv2.imshow('Frame', frame)
@@ -77,7 +77,7 @@ if __name__ == '__main__':
                     break
 
                 start = time.time()
-                frame, body_marks, hand_marks = estimator.process_capture(frame)
+                frame, body_marks = estimator.process_capture(frame)
                 print(f'Tempo: {time.time() - start}')
 
                 cv2.imshow('Frame', frame)
