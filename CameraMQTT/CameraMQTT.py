@@ -13,7 +13,7 @@ BROKER_PORT = 1883
 IMAGES_TOPIC = 'images'
 
 CAMERA_RESOLUTION = (640, 480)
-CAPTURE_PERIOD = 2 # in seconds
+CAPTURE_PERIOD = 5 # in seconds
 
 
 def capture(camera: PiCamera, image_stream: BytesIO, resolution: tuple, format='jpeg', exposure_mode='auto', vflip=False):
