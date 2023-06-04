@@ -35,12 +35,15 @@ if __name__ == '__main__':
                         frame, body_marks = estimator.process_capture(frame)
                         classifier = PostureClassifier(body_marks)
 
-                        info = classifier.get_info()
-                        info_dataframe = pd.DataFrame.from_dict(info, orient='index').T
-                        info_dataframe['file'] = file
-                        info_dataframe['class'] = True if folder == 'incorrect/' else False
+                        # info = classifier.get_info()
+                        # info_dataframe = pd.DataFrame.from_dict(info, orient='index').T
+                        # info_dataframe['file'] = file
+                        # info_dataframe['class'] = True if folder == 'incorrect/' else False
+                        # data = pd.concat([data, info_dataframe], ignore_index=True)
 
-                        data = pd.concat([data, info_dataframe], ignore_index=True)
+                        result = classifier.make_classification()
+                        print(result)
+
                         print(f'Tempo: {time.time() - start}')
 
                         # cv2.imshow(file, frame)
@@ -113,4 +116,4 @@ if __name__ == '__main__':
             print('Não foi possível abrir a câmera')
 
 cv2.destroyAllWindows()
-data.to_csv('features_dataset.csv')
+# data.to_csv('features_dataset.csv')
