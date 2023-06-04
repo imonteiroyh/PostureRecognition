@@ -225,6 +225,12 @@ class PoseEstimator():
         frame = input_image.copy()
 
         for i in range(self.__heatmap_channels - 1):
+            for mark in body_marks[i]:
+                if mark:
+                    best_score = max(body_marks[i], key=lambda x: x[2])
+                    body_marks[i] = [best_score]
+
+        for i in range(self.__heatmap_channels - 1):
             for j in range(len(body_marks[i])):
                 cv2.circle(frame, body_marks[i][j][0 : 2], 4, self.__colors[i], thickness=-1)
 
