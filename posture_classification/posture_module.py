@@ -1,15 +1,65 @@
+import warnings
+warnings.filterwarnings('ignore')
+
+import shap
+import pickle
 import numpy as np
+import pandas as pd
 from posture_classification.utils import get_angle, get_distance
 
-class PostureClassifier():
+class WaterfallData():
+    def __init__(self, shap_test):
+        self.values = shap_test[0].values
+        self.base_values = shap_test[0].base_values
+        self.data = shap_test[0].data
+        self.display_data = None
+        self.feature_names = shap_test.feature_names
 
+
+class PostureClassifier():
     def __init__(self, body_marks):
         self.body_marks = body_marks
         self.posture_condition = PostureCondition(self.body_marks)
+        self.info = self.posture_condition.get_info()
+        self.info_dataframe = pd.DataFrame.from_dict(self.info, orient='index').T
+
+        self.__directory = 'posture_classification/'
+
+        self.pipeline = pickle.load(open(self.__directory + 'pipeline.pkl', 'rb'))
+        self.classifier = pickle.load(open(self.__directory + 'classifier.pkl', 'rb'))
+
+
+    def get_info(self):
+        return self.info
+
+
+    def __preprocess(self):
+        X = self.pipeline.transform(self.info_dataframe)
+        self.info_dataframe = pd.DataFrame(X, columns=self.info_dataframe.columns)
+
+
+    def __explain_classification(self):
+        self.explainer = shap.Explainer(self.classifier)
+        self.shap_test = self.explainer(self.info_dataframe)
+
+        self.shap_dict = {}
+        for feature, shap_value in zip(self.shap_test.feature_names, self.shap_test[0].values):
+            self.shap_dict[feature] = shap_value
+
+
+    def __plot_shap_values(self):
+        shap.plots.waterfall(WaterfallData(self.shap_test))
+
+
+    def make_classification(self):
+        self.__preprocess()
+        self.__explain_classification()
+        predicted_class = self.classifier.predict(self.info_dataframe)
+
+        return predicted_class, self.shap_dict
 
 
 class PostureCondition():
-
     def __init__(self, body_marks):
         self.body_marks = body_marks
 
@@ -40,10 +90,10 @@ class PostureCondition():
         self.get_thigh_condition()
         self.get_knee_condition()
 
-        self.data = self.get_data()
-
 
     def initialize(self):
+        self.info = {}
+
         if self.nose:
             self.nose_coordinates = self.nose[0][0 : 2]
 
@@ -304,6 +354,9 @@ class PostureCondition():
         self.left_thigh_horizontal = True
         self.right_thigh_horizontal = True
 
+        self.left_thigh_angle = None
+        self.right_thigh_angle = None
+
         lower_angle_limit = 70
         upper_angle_limit = 110
 
@@ -330,8 +383,8 @@ class PostureCondition():
             if not self.right_thigh_angle:
                 return
 
-            if self.left_thigh_angle < upper_angle_limit or self.left_thigh_angle < lower_angle_limit:
-                self.left_thigh_horizontal = False
+            if self.right_thigh_angle < upper_angle_limit or self.right_thigh_angle < lower_angle_limit:
+                self.right_thigh_horizontal = False
 
 
     def __get_knee_angle(self):
@@ -358,49 +411,51 @@ class PostureCondition():
         self.__get_trunk_angle()
         self.__get_trunk_neck_angle()
 
-        print('trunk rotated', self.rotated_trunk)
-        print('trunk angle', self.trunk_angle)
-        print('trunk neck angle', self.trunk_neck_angle)
+        self.info['trunk_rotated'] = self.rotated_trunk
+        self.info['trunk_angle'] = self.trunk_angle
+        self.info['trunk_neck_angle'] = self.trunk_neck_angle
 
 
     def get_neck_condition(self):
         self.__is_rotated_neck()
         self.__get_neck_angle()
 
-        print('neck rotated', self.rotated_neck)
-        print('neck angle', self.neck_angle)
+        self.info['neck_rotated'] = self.rotated_neck
+        self.info['neck_angle'] = self.neck_angle
 
 
     def get_upper_arm_condition(self):
         self.__get_upper_arm_angle()
 
-        print('upper arm left angle', self.left_upper_arm_angle)
-        print('upper arm right angle', self.right_upper_arm_angle)
+        self.info['left_upper_arm_angle'] = self.left_upper_arm_angle
+        self.info['right_upper_arm_angle'] = self.right_upper_arm_angle
 
 
     def get_elbow_condition(self):
         self.__is_lateral_elbow()
         self.__get_elbow_angle()
 
-        print('elbow left lateral', self.left_elbow_lateral)
-        print('elbow right lateral', self.right_elbow_lateral)
-        print('elbow left angle', self.left_elbow_angle)
-        print('elbow right angle', self.right_elbow_angle)
+        self.info['left_elbow_lateral'] = self.left_elbow_lateral
+        self.info['right_elbow_lateral'] = self.right_elbow_lateral
+        self.info['left_elbow_angle'] = self.left_elbow_angle
+        self.info['right_elbow_angle'] = self.right_elbow_angle
 
 
     def get_thigh_condition(self):
         self.__is_horizontal_thigh()
 
-        print('left thigh horizontal', self.left_thigh_horizontal)
-        print('right thigh horizontal', self.right_thigh_horizontal)
+        self.info['left_thigh_horizontal'] = self.left_thigh_horizontal
+        self.info['right_thigh_horizontal'] = self.right_thigh_horizontal
+        self.info['left_thigh_angle'] = self.left_thigh_angle
+        self.info['right_thigh_angle'] = self.right_thigh_angle
 
 
     def get_knee_condition(self):
         self.__get_knee_angle()
 
-        print('knee left angle', self.left_knee_angle)
-        print('knee right angle', self.right_knee_angle)
+        self.info['left_knee_angle'] = self.left_knee_angle
+        self.info['right_knee_angle'] = self.right_knee_angle
 
 
-    def get_data(self):
-        pass
+    def get_info(self):
+        return self.info
