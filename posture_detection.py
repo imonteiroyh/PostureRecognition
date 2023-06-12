@@ -30,6 +30,9 @@ if __name__ == '__main__':
                     i = 0
                     for file in os.listdir('image/' + folder + subfolder):
                         frame = cv2.imread('image/' + folder + subfolder + file)
+                        
+                        if frame.all() == None:
+                            continue
 
                         start = time.time()
                         frame, body_marks = estimator.process_capture(frame)
