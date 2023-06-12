@@ -3,6 +3,7 @@ warnings.filterwarnings('ignore')
 
 import shap
 import pickle
+import xgboost as xgb
 import numpy as np
 import pandas as pd
 from posture_classification.utils import get_angle, get_distance
@@ -26,7 +27,9 @@ class PostureClassifier():
         self.__directory = 'posture_classification/'
 
         self.pipeline = pickle.load(open(self.__directory + 'pipeline.pkl', 'rb'))
-        self.classifier = pickle.load(open(self.__directory + 'classifier.pkl', 'rb'))
+
+        self.classifier = xgb.Booster()
+        self.classifier.load_model(self.__directory + 'classifier.model')
 
 
     def get_info(self):
@@ -54,7 +57,9 @@ class PostureClassifier():
     def make_classification(self):
         self.__preprocess()
         self.__explain_classification()
-        predicted_class = self.classifier.predict(self.info_dataframe)
+
+        self.info_dmatrix = xgb.DMatrix(self.info_dataframe) 
+        predicted_class = self.classifier.predict(self.info_dmatrix)
 
         return predicted_class, self.shap_dict
 
