@@ -72,7 +72,7 @@ def on_message(client, userdata, message):
     result = classifier.make_classification()
     
     class_result = classes[round(result[0][0])]
-    print(f'Postura: {class_result} / Score: {result[0]} / SHAP: {result[1]}')
+    print(f'Postura: {class_result} / Score: {result[0]}')
     print(f'Tempo: {time.time() - start} s')
 
     log = {
@@ -85,7 +85,7 @@ def on_message(client, userdata, message):
         log[key] = float(result[1][key])
 
         result[1].items()
-    print(log)
+
     write_log_file(log)
 
     image_detected_name = f'{images_test_detected_dir}/{timestamp}.jpeg'
