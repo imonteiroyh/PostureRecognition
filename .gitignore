@@ -160,6 +160,7 @@ cython_debug/
 #.idea/
 
 model.h5
+logs.json
 
 image*
 video*
