@@ -1,0 +1,4 @@
+paho-mqtt
+picamera
+Pillow
+python-dotenv
