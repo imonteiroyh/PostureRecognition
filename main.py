@@ -53,13 +53,13 @@ def start_client() -> mqtt.Client:
 def on_message(client, userdata, message):
     global estimator
 
-    print("Message received")
+    # print("Message received")
     timestamp = datetime.datetime.now()
 
     image_data = b64decode(message.payload)
     image_as_np = np.frombuffer(image_data, dtype=np.uint8)
 
-    print('Iniciando detecção dos pontos-chave')
+    # print('Iniciando detecção dos pontos-chave')
 
     frame = cv2.imdecode(image_as_np, flags=1)
     image_name = f'{images_test_dir}/{timestamp}.jpeg'
@@ -72,8 +72,8 @@ def on_message(client, userdata, message):
     result = classifier.make_classification()
     
     class_result = classes[round(result[0][0])]
-    print(f'Postura: {class_result} / Score: {result[0]}')
-    print(f'Tempo: {time.time() - start} s')
+    print(f'\n\nPostura: {class_result} / Score: {result[0]}')
+    print(f'Tempo: {time.time() - start} s\n')
 
     log = {
         'path': image_name,
