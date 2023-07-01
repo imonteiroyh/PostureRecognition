@@ -1,0 +1,46 @@
+.logo {
+    font-family: 'Barlow';
+    font-size: 34px;
+    padding-left: 20px;
+    color: #aaa;
+}
+
+.header {
+    background-color: #001C30;
+    color: #DAFFFB;
+    padding: 20px;
+    text-align: center;
+}
+
+.container {
+    max-width: 50% !important;
+    float: left;
+    box-sizing: border-box;
+    padding: 10px;
+    align-items: center;
+    /* justify-content: center; */
+    flex-direction: column;
+    display: flex;
+}
+
+.container-result {
+    max-width: 100% !important;
+    box-sizing: border-box;
+    padding: 10px;
+    align-items: center;
+    justify-content: center;
+    /* flex-direction: column; */
+    display: flex;
+}
+  
+.container img {
+    align-content: center;
+    width: 100%; /* Definindo uma largura menor para as imagens */
+    height: auto;
+    display: flex; /* Faz as imagens ficarem lado a lado */
+}
+
+.container .text {
+    text-align: center; /* Centraliza horizontalmente o texto */
+    margin-top: 10px; /* Espaçamento entre o texto e as imagens */
+  }
