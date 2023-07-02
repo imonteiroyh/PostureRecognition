@@ -72,7 +72,10 @@ def on_message(client, userdata, message):
     result = classifier.make_classification()
     
     class_result = classes[round(result[0][0])]
+    shap_values = result[1]
+
     print(f'\n\nPostura: {class_result} / Score: {result[0]}')
+    print(f'SHAP: {shap_values}')
     print(f'Tempo: {time.time() - start} s\n')
 
     log = {
