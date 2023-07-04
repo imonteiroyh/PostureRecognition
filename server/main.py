@@ -3,11 +3,12 @@ import cv2
 import datetime
 import numpy as np
 import time
-from base64 import b64decode
-from json import load, dump
+from base64 import b64decode, b64encode
+from json import load, dump, loads, dumps
 import paho.mqtt.client as mqtt
 from posture_classification.pose_module import PoseEstimator
 from posture_classification.posture_module import PostureClassifier
+from posture_classification.posture_analyzer import PostureAnalyzer
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,6 +16,9 @@ load_dotenv()
 BROKER_IP = os.environ['BROKER_IP']
 BROKER_PORT = 1883
 IMAGES_TOPIC = 'images'
+CLASSIFICATION_TOPIC = 'posture/classification'
+
+MINIMUM_BODY_MARKS = 10
 
 estimator = PoseEstimator()
 
@@ -54,46 +58,76 @@ def on_message(client, userdata, message):
     global estimator
 
     # print("Message received")
-    timestamp = datetime.datetime.now()
-
-    image_data = b64decode(message.payload)
-    image_as_np = np.frombuffer(image_data, dtype=np.uint8)
+    # timestamp = datetime.datetime.now()
+    frame = read_image(message.payload)
 
     # print('Iniciando detecção dos pontos-chave')
 
-    frame = cv2.imdecode(image_as_np, flags=1)
-    image_name = f'{images_test_dir}/{timestamp}.jpeg'
-    cv2.imwrite(image_name, frame)
+    # image_name = f'{images_test_dir}/{timestamp}.jpeg'
+    # cv2.imwrite(image_name, frame)
 
     start = time.time()
     
     frame_detected, body_marks = estimator.process_capture(frame)
+
+    marks_count = 0
+    for mark in body_marks:
+        if mark:
+            marks_count += 1
+
+    if marks_count < MINIMUM_BODY_MARKS:
+        payload = {
+            'class': 'indeterminada',
+            'image': encode_image_to_base64(frame)
+        }
+        client.publish(CLASSIFICATION_TOPIC, dumps(payload))
+        return
+
     classifier = PostureClassifier(body_marks)
-    result = classifier.make_classification()
-    
-    class_result = classes[round(result[0][0])]
-    shap_values = result[1]
+    result, shap_values = classifier.make_classification()
+
+    class_result = classes[round(result[0])]
 
     print(f'\n\nPostura: {class_result} / Score: {result[0]}')
-    print(f'SHAP: {shap_values}')
-    print(f'Tempo: {time.time() - start} s\n')
-
-    log = {
-        'path': image_name,
-        'postura': class_result,
-        'score': float(result[0][0])
+    
+    analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=True)
+    frame_analyzed = analyzer.explain_image()
+    
+    payload = {
+        'class': class_result,
+        'image': encode_image_to_base64(frame_analyzed)
     }
 
-    for key in result[1].keys():
-        log[key] = float(result[1][key])
+    client.publish(CLASSIFICATION_TOPIC, dumps(payload))
+    
+    # print(f'SHAP: {shap_values}')
+    # print(f'Tempo: {time.time() - start} s\n')
 
-        result[1].items()
+    # log = {
+    #     'path': image_name,
+    #     'postura': class_result,
+    #     'score': float(result[0][0])
+    # }
 
-    write_log_file(log)
+    # for key in result[1].keys():
+    #     log[key] = float(result[1][key])
 
-    image_detected_name = f'{images_test_detected_dir}/{timestamp}.jpeg'
-    cv2.imwrite(image_detected_name, frame_detected)
+    #     result[1].items()
 
+    # write_log_file(log)
+
+    # image_detected_name = f'{images_test_detected_dir}/{timestamp}.jpeg'
+    # cv2.imwrite(image_detected_name, frame_detected)
+
+def read_image(image_base64):
+    image_data = b64decode(image_base64)
+    image_as_np = np.frombuffer(image_data, dtype=np.uint8)
+    frame = cv2.imdecode(image_as_np, flags=1)
+    return frame
+
+def encode_image_to_base64(image):
+    _, im_encoded = cv2.imencode('.jpg', image)
+    return b64encode(im_encoded.tobytes()).decode()
 
 def read_log_file():
     with open(log_file_path, 'r') as log_file:

@@ -20,10 +20,11 @@
 
 import cv2
 
+GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 
 class PostureAnalyzer:
-    def __init__(self, body_marks, shap_values: dict, image):
+    def __init__(self, body_marks, shap_values: dict, image, is_incorrect: bool):
         self.body_marks = body_marks
         self.__set_body_parts_indexes()
         self.__set_body_parts_keys()
@@ -31,10 +32,14 @@ class PostureAnalyzer:
         self.shap = shap_values
         self.image = image.copy()
 
-        self.colors = [None for _ in range(18)]
-        self.set_key_for_max_shap(shap_values)
+        if is_incorrect:
+            self.colors = [None for _ in range(18)]
+            self.set_key_for_max_shap(shap_values)
 
-        self.set_color_map()
+            self.set_color_map()
+
+        else:
+            self.colors = [GREEN for _ in range(18)]
 
     def __set_body_parts_indexes(self):
         self.head_indexes = [0, 1, 14, 15, 16, 17]
@@ -51,8 +56,8 @@ class PostureAnalyzer:
         self.trunk_keys = ["trunk_rotated", "trunk_angle"]
         self.right_arm_keys = ["right_upper_arm_angle", "right_elbow_lateral", "right_elbow_angle"]
         self.left_arm_keys = ["left_upper_arm_angle", "left_elbow_lateral", "left_elbow_angle"]
-        self.right_leg_keys = ["right_thigh_horizontal", "right_thigh_angle", "right_knee_angle"]
-        self.left_leg_keys = ["left_thigh_horizontal", "left_thigh_angle", "left_knee_angle"]
+        self.leg_keys = ["right_thigh_horizontal", "right_thigh_angle", "right_knee_angle", "left_thigh_horizontal", "left_thigh_angle", "left_knee_angle"]
+
 
     
     def set_key_for_max_shap(self, shap: dict):
@@ -60,7 +65,6 @@ class PostureAnalyzer:
         self.key_max_shap = key
 
     def set_color_map(self):
-        #TODO: se o problema for em uma das pernas, marcar as duas
         if self.key_max_shap in self.neck_keys:
             self.__set_color_in_indexes(self.neck_indexes, RED)
             self.__set_color_in_indexes(self.upper_trunk_indexes, RED)
@@ -69,6 +73,7 @@ class PostureAnalyzer:
         if self.key_max_shap in self.trunk_keys:
             self.__set_color_in_indexes(self.upper_trunk_indexes, RED)
             self.__set_color_in_indexes(self.lower_trunk_indexes, RED)
+            self.__set_color_in_indexes(self.neck_indexes, RED)
         
         if self.key_max_shap in self.right_arm_keys:
             self.__set_color_in_indexes(self.right_arm_indexes, RED)
@@ -76,10 +81,8 @@ class PostureAnalyzer:
         if self.key_max_shap in self.left_arm_keys:
             self.__set_color_in_indexes(self.left_arm_indexes, RED)
         
-        if self.key_max_shap in self.right_leg_keys:
+        if self.key_max_shap in self.leg_keys:
             self.__set_color_in_indexes(self.right_leg_indexes, RED)
-        
-        if self.key_max_shap in self.left_leg_keys:
             self.__set_color_in_indexes(self.left_leg_indexes, RED)
 
     
