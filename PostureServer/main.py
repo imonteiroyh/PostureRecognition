@@ -15,7 +15,8 @@ load_dotenv()
 
 BROKER_IP = os.environ['BROKER_IP']
 BROKER_PORT = 1883
-IMAGES_TOPIC = 'images'
+IMAGES_TOPIC = 'camera/images'
+CAPTURE_TOPIC = 'camera/capture'
 CLASSIFICATION_TOPIC = 'posture/classification'
 
 MINIMUM_BODY_MARKS = 10
@@ -33,18 +34,20 @@ log_file_path = 'logs.json'
 def main():
     global logs
 
-    if not os.path.exists(images_test_dir):
-        os.mkdir(images_test_dir)
+    # if not os.path.exists(images_test_dir):
+    #     os.mkdir(images_test_dir)
 
-    if not os.path.exists(images_test_detected_dir):
-        os.mkdir(images_test_detected_dir)
+    # if not os.path.exists(images_test_detected_dir):
+    #     os.mkdir(images_test_detected_dir)
 
-    logs = read_log_file()
+    # logs = read_log_file()
+    
     client = start_client()
 
     client.on_message = on_message
     client.subscribe(IMAGES_TOPIC)
 
+    client.publish(CAPTURE_TOPIC)
     client.loop_forever()
 
 
@@ -80,28 +83,28 @@ def on_message(client, userdata, message):
             'class': 'indeterminada',
             'image': encode_image_to_base64(frame)
         }
-        client.publish(CLASSIFICATION_TOPIC, dumps(payload))
-        return
-
-    classifier = PostureClassifier(body_marks)
-    result, shap_values = classifier.make_classification()
-
-    class_result = classes[round(result[0])]
-
-    print(f'\n\nPostura: {class_result} / Score: {result[0]}')
     
-    if class_result == classes[1]:
-        analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=True)
     else:
-        analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=False)
-    
-    frame_analyzed = analyzer.explain_image()
-    payload = {
-        'class': class_result,
-        'image': encode_image_to_base64(frame_analyzed)
-    }
+        classifier = PostureClassifier(body_marks)
+        result, shap_values = classifier.make_classification()
+
+        class_result = classes[round(result[0])]
+
+        print(f'\n\nPostura: {class_result} / Score: {result[0]}')
+        
+        if class_result == classes[1]:
+            analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=True)
+        else:
+            analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=False)
+        
+        frame_analyzed = analyzer.explain_image()
+        payload = {
+            'class': class_result,
+            'image': encode_image_to_base64(frame_analyzed)
+        }
 
     client.publish(CLASSIFICATION_TOPIC, dumps(payload))
+    client.publish(CAPTURE_TOPIC)
     
     # print(f'SHAP: {shap_values}')
     # print(f'Tempo: {time.time() - start} s\n')
