@@ -32,14 +32,11 @@ class PostureAnalyzer:
         self.shap = shap_values
         self.image = image.copy()
 
+        self.colors = [GREEN for _ in range(18)]
         if is_incorrect:
-            self.colors = [None for _ in range(18)]
             self.set_key_for_max_shap(shap_values)
-
             self.set_color_map()
 
-        else:
-            self.colors = [GREEN for _ in range(18)]
 
     def __set_body_parts_indexes(self):
         self.head_indexes = [0, 1, 14, 15, 16, 17]

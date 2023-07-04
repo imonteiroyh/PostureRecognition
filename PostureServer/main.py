@@ -90,9 +90,12 @@ def on_message(client, userdata, message):
 
     print(f'\n\nPostura: {class_result} / Score: {result[0]}')
     
-    analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=True)
-    frame_analyzed = analyzer.explain_image()
+    if class_result == classes[1]:
+        analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=True)
+    else:
+        analyzer = PostureAnalyzer(body_marks, shap_values, frame, is_incorrect=False)
     
+    frame_analyzed = analyzer.explain_image()
     payload = {
         'class': class_result,
         'image': encode_image_to_base64(frame_analyzed)
