@@ -24,6 +24,7 @@
   "homepage": "https://github.com/imonteiroyh/IOT#readme",
   "dependencies": {
     "express": "^4.18.2",
+    "mqtt": "^4.3.7",
     "nodemon": "^2.0.22"
   }
 }
