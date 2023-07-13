@@ -1,0 +1,4 @@
+paho-mqtt==1.6.1
+picamera==1.13
+Pillow==9.5.0
+python-dotenv==1.0.0
