@@ -28,4 +28,4 @@ In general, the system architecture is as follows:
 ![indeterminate](https://github.com/imonteiroyh/PostureRecognition/assets/61994795/8d365892-789e-4284-b386-68480cdac7e2)
 
 ## Contributions
-The project was made by Vandemberg Monteiro, responsible for the feature extraction and classification, Davi Queiroz, responsible for the communication between the camera and the server and between the server and the client and Yago Oliveira, responsible for the user interface. Data collection was structured by Vandemberg Monteiro and carried out by Davi Queiroz and Yago Oliveira.
+The project was made by Vandemberg Monteiro, responsible for the feature extraction and classification, Davi Queiroz, responsible for the communication between the camera and the server and between the server and the client, and Yago Oliveira, responsible for the user interface. Data collection was structured by Vandemberg Monteiro and carried out by Davi Queiroz and Yago Oliveira.
