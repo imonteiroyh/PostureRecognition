@@ -169,6 +169,3 @@ features_dataset*
 debug*
 
 node_modules
-
-.env
-env/
