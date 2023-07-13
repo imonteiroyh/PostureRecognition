@@ -1,5 +1,4 @@
 const express = require('express');
-
 const app = express();
 
 app.use(express.static('public'))
@@ -9,5 +8,5 @@ app.get('/', (req,res) => {
 })
 
 app.listen(8000, (req,res) => {
-    console.log("Servidos rodando na porta 8000");
+    console.log("Servidor rodando na porta 8000");
 })

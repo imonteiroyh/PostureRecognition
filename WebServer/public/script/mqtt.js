@@ -1,5 +1,5 @@
 
-    // Create a client instance
+// create a client instance
 client = new Paho.MQTT.Client('localhost', Number(9001), "clientId");
 
 // set callback handlers
@@ -9,19 +9,11 @@ client.onMessageArrived = onMessageArrived;
 // connect the client
 client.connect({onSuccess:onConnect});
 
-
 // called when the client connects
 function onConnect() {
-    // Once a connection has been made, make a subscription and send a message.
+    // once a connection has been made, make a subscription and send a message.
     console.log("onConnect");
     client.subscribe("posture/classification");
-        message = new Paho.MQTT.Message(JSON.stringify({
-            name:"yago",
-            id:1,
-            class: "incorreta"
-        }));
-    message.destinationName = "posture/classification";
-    client.send(message);
 }
 
 // called when the client loses its connection
@@ -38,12 +30,9 @@ function onMessageArrived(message) {
     var img = data.image;
 
     const result = document.querySelector("#result");
-    result.innerHTML = posture
+    result.innerHTML = `Resultado: postura ${posture}`
 
     const imgresult = document.querySelector("#img-result");
-    imgresult.src = `data:image/png;base64,${imgresult}`
-
-       
+    console.log(imgresult);
+    imgresult.src = `data:image/jpg;base64,${img}`
 }
-
-
