@@ -15,8 +15,6 @@ IMAGES_TOPIC = 'camera/images'
 CAPTURE_TOPIC = 'camera/capture'
 
 CAMERA_RESOLUTION = (640, 480)
-# CAPTURE_PERIOD = 5 # in seconds
-
 
 def capture(camera: PiCamera, image_stream: BytesIO, resolution: tuple, format='jpeg', rotation=0, vflip=False):
     camera.resolution = resolution
@@ -38,7 +36,7 @@ def on_message(client, userdata, message):
             image_stream = BytesIO()
 
             capture(camera, image_stream, CAMERA_RESOLUTION, rotation=90)
-            
+
             image = read_image(image_stream)
             image_stream.close()
 
@@ -60,7 +58,7 @@ def main():
 
     client.on_message = on_message
     client.subscribe(CAPTURE_TOPIC)
-    
+
     client.loop_forever()
 
 

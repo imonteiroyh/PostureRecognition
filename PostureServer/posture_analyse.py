@@ -13,7 +13,6 @@ images_analyzed_dir = './images_analyzed'
 
 images = os.listdir(images_test_dir)
 
-
 for image in images:
 
     with open(f'{images_test_dir}/{image}', 'rb') as image_file:
@@ -21,12 +20,9 @@ for image in images:
 
     image_as_np = np.frombuffer(image_data, dtype=np.uint8)
 
-    # print('Iniciando detecção dos pontos-chave')
-
     frame = cv2.imdecode(image_as_np, flags=1)
 
     frame_detected, body_marks = estimator.process_capture(frame)
-    # print(f'Body marks: {body_marks}')
 
     classifier = PostureClassifier(body_marks)
     result, shap_values = classifier.make_classification()
@@ -34,11 +30,9 @@ for image in images:
     class_result = classes[round(result[0])]
 
     print(f'\n\nPostura: {class_result} / Score: {result}')
-    # print(f'SHAP: {shap_values}')
 
     if class_result == classes[1]:
         analyzer = PostureAnalyzer(body_marks, shap_values, frame)
 
         frame_analyzed = analyzer.explain_image()
         cv2.imwrite(f'{images_analyzed_dir}/{image}', frame_analyzed)
-    
